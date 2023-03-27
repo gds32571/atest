@@ -1,0 +1,141 @@
+; ***************************
+;        atest.z80
+; designed to test the output port
+;      of the Model 4
+; to do SPI bit bang style
+; 15 Mar 2023 - gswann
+; updated for model 7
+; ***************************
+; start of Model 4 MEM2 	(second memory ic)
+;	ORG	0800H		;Model 5 program ram
+; start of Model 7  MEM2 	(second memory ic is 6116  2000-2FFF)
+begin:
+	ORG	2000H		;Model 7 program ram
+	LD	SP,02FE0H
+        call    STPR            ; print the prompts and values
+        defw    mystr1
+TT:	LD	B,10
+T0:	PUSH 	BC
+
+;	LD	A,(hours)	;STARTS WITH hours
+;	call	T1
+	LD	A,(mins)	;STARTS WITH hours
+	call	T1
+	LD	A,(secs)	;STARTS WITH hours
+	call 	T1
+
+	LD	A,8		; output latch
+	OUT     (0),A
+	LD	A,0
+	OUT     (0),A
+
+T3:
+print1:
+	LD	(psave2),A
+	LD	A,(hours)
+	call	PHEX
+	LD	A,(mins)
+	call	PHEX
+	LD	A,(secs)
+	call	PHEX
+	LD	A,(psave2)
+	call 	DELAY
+;*****************************
+	call	incre
+	LD	A,16
+	OUT	(0),A
+	LD	E,'.'
+	CALL	XMIT
+	POP	BC
+	DJNZ	T0sc
+	CALL	CRLF
+;	CALL	CR
+	JP	TT		;repeat the sequence
+T0sc:	JP 	T0
+;*****************************
+T1:
+	LD	B,8
+	SRA	a		; LSB first
+	LD	(psave1),a
+	JR	NC,T2
+	LD	A,2		; data shift out (2^1)
+	JR	T2a
+T2:	LD	A,0
+T2a:	OUT	(0),A
+	OR	4		; shift clock
+	OUT     (0),A
+	AND	0FBH
+	OUT     (0),A
+	LD	A,(psave1)	; the data word
+	DJNZ	T1+2		; dec B reg
+	RET
+
+;*****************************
+incre:
+; now increment seconds data
+	LD	A,(secs)
+	ADD	1
+	DAA
+	LD	(secs),A
+	CP	60H
+	JR	NZ,iexit
+; here if seconds overflow
+	LD	A,0
+	LD	(secs),A
+	LD	A,(mins)
+	ADD	1
+	DAA
+	LD	(mins),A
+	CP	060H
+	JR	NZ,iexit
+; here if mins overflow
+	LD	A,0		; zero out hours and minutes
+	LD	(mins),A
+        LD      A,0
+        LD      (secs),A
+        LD      A,(hours)
+        ADD     1
+        DAA
+        LD      (hours),A
+        CP      024H
+	JR	NZ,iexit
+	LD	A,0
+	LD	(hours),A
+iexit:
+	ret
+CR:	LD	E,0x0D
+	call	XMIT
+	ret
+
+; no overflow anywhere
+;*****************************
+hours:	DEFB	0H
+mins:	DEFB	0H
+secs:	DEFB	0H
+psave1:	DEFB	0
+psave2: DEFB	0
+CNTR:	DEFB	08H
+        DEFM    '  atest version 1.2  '
+;****************************
+DELAY:	LD 	HL,0B530H	;delay subroutine
+	DEC	HL
+	LD	(asave),A
+	LD	A,L
+	CP	0
+	JP	NZ,DELAY+3
+	LD	A,H
+	CP	0
+	JP	NZ,DELAY+3
+	LD	A,(asave)
+	RET
+asave:	DEFB	0
+mystr1:
+	DEFW   0A0DH
+        defm   'atest starting '
+        DEFW	0A0DH 
+	defb 0
+;******************************
+
+include	'atest-mm7.lab'
+	END
+; that's all
