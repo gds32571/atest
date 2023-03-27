@@ -1,0 +1,27 @@
+#!/usr/bin/python3
+
+##############################################
+# gswann 25 Jan 2020
+# resets GF clock
+
+# gswann 21 Mar 2023
+# updated to reset z80
+
+from time import sleep
+import RPi.GPIO as GPIO
+
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+
+rstClock = 23
+GPIO.setup(rstClock,GPIO.OUT)
+
+
+print("Resetting z80")
+# reset the z80 clock
+GPIO.output(rstClock,1)
+sleep(2)
+GPIO.output(rstClock,0)
+
+print("Done")
+
