@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+
+# hexmc - gswann - Feb 2023
+
+# 19 Feb 2023
+# added autostop character at end of .mc file
+
+import sys
+
+filename = sys.argv[-1]
+
+if (filename) == "./hexmc":
+   print ("no file specified") 
+   exit()
+
+myFilein  = filename + ".hex"
+myFileout = filename + ".mc"
+
+print ("Version 1.1as" )
+print (myFilein)
+print (myFileout)
+
+bctr = 0
+
+fout = open(myFileout,"w")
+
+with open(myFilein,"rb") as fin:
+   byte2 = fin.read(1)
+   while byte2 != b"":
+     byte = int.from_bytes(byte2,byteorder='big')
+     bctr += 1
+     high = (byte >> 4) & 15
+     low  = byte & 15
+     high = high + 64
+     low =  low + 64
+     fout.write(chr(high))
+     fout.write(chr(low))
+     
+     byte2 = fin.read(1)
+     if byte2 == b"":
+       print(" ")
+       print ("   breaking")
+       break
+# auto stop
+fout.write(".")
+fin.close
+fout.close
+
+print("bytes processed = ",bctr)
+print("That's all!")
