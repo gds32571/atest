@@ -18,17 +18,16 @@ TT:	LD	B,10
 T0:	PUSH 	BC
 
 ;	LD	A,(hours)	;STARTS WITH hours
-;	call	T1
-	LD	A,(mins)	;STARTS WITH hours
-	call	T1
-	LD	A,(secs)	;STARTS WITH hours
-	call 	T1
+;	call	shift_8
+	LD	A,(mins)	;STARTS WITH mins
+	call	shift_8
+	LD	A,(secs)	;STARTS WITH secs
+	call 	shift_8
 
 	LD	A,8		; output latch
 	OUT     (0),A
 	LD	A,0
 	OUT     (0),A
-
 T3:
 print1:
 	LD	(psave2),A
@@ -39,11 +38,11 @@ print1:
 	LD	A,(secs)
 	call	PHEX
 	LD	A,(psave2)
-	call 	DELAY
 ;*****************************
-	call	incre
-	LD	A,16
-	OUT	(0),A
+;	call 	DELAY
+;*****************************
+	call	clk_in		; wait for clock pulse in
+	call	incre		; increment time
 	LD	E,'.'
 	CALL	XMIT
 	POP	BC
@@ -53,7 +52,7 @@ print1:
 	JP	TT		;repeat the sequence
 T0sc:	JP 	T0
 ;*****************************
-T1:
+shift_8:
 	LD	B,8
 	SRA	a		; LSB first
 	LD	(psave1),a
@@ -67,7 +66,7 @@ T2a:	OUT	(0),A
 	AND	0FBH
 	OUT     (0),A
 	LD	A,(psave1)	; the data word
-	DJNZ	T1+2		; dec B reg
+	DJNZ	shift_8+2		; dec B reg
 	RET
 
 ;*****************************
@@ -117,6 +116,19 @@ psave2: DEFB	0
 CNTR:	DEFB	08H
         DEFM    '  atest version 1.2  '
 ;****************************
+; wait for 1pps clock on port 0, pin 2^7
+; pin is pulled low by O.C. transistor
+clk_in:
+        IN      A,(0)           ;Check for clock pulse  
+        AND     080H            ;Jump to exit if low
+	jr	NZ,clk_in
+ci1:	IN	A,(0)
+	AND	080H
+	jr 	Z,ci1
+ci_exit:
+	ret
+;****************************
+; not used right now
 DELAY:	LD 	HL,0B530H	;delay subroutine
 	DEC	HL
 	LD	(asave),A
@@ -131,7 +143,7 @@ DELAY:	LD 	HL,0B530H	;delay subroutine
 asave:	DEFB	0
 mystr1:
 	DEFW   0A0DH
-        defm   'atest starting '
+        defm   'atest v1.2 with external clock starting '
         DEFW	0A0DH 
 	defb 0
 ;******************************
